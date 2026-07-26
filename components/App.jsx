@@ -97,6 +97,8 @@ export default function App() {
   const [research, setResearch] = useState("");
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" });
   const [whatsappDraft, setWhatsappDraft] = useState("");
+  const [lushaLoading, setLushaLoading] = useState(false);
+  const [tcLoading, setTcLoading] = useState(false);
 
   // Contacts
   const [contacts, setContacts] = useState([]);
@@ -169,6 +171,25 @@ export default function App() {
   }, [authed, tab, loadDashboard, loadContacts, loadStyles, loadTeam]);
 
   // ── OUTREACH HANDLERS ──
+  const lushaLookup = async () => {
+    if (!prospect) return;
+    setLushaLoading(true); setError("");
+    try {
+      var parts = prospect.name.trim().split(" ");
+      var data = await api("/api/lusha", { firstName: parts[0], lastName: parts.slice(1).join(" "), company: prospect.company });
+      var updates = {};
+      if (data.emails && data.emails.length && !prospect.email) updates.email = data.emails[0].email;
+      if (data.phones && data.phones.length && !prospect.phone) updates.phone = data.phones[0].phone;
+      if (data.title && !prospect.designation) updates.designation = data.title;
+      if (Object.keys(updates).length) {
+        setProspect(function(p) { return Object.assign({}, p, updates); });
+        setStatus("Lusha found " + (data.emails ? data.emails.length : 0) + " email(s), " + (data.phones ? data.phones.length : 0) + " phone(s)");
+      } else { setStatus("Lusha: No new data found"); }
+      setTimeout(function() { setStatus(""); }, 3000);
+    } catch (e) { setError("Lusha: " + e.message); }
+    setLushaLoading(false);
+  };
+
   const resetOutreach = () => {
     setStep(1); setInputText(""); setProspect(null); setSavedProspectId(null);
     setResearch(""); setEmailDraft({ subject: "", body: "" }); setWhatsappDraft("");
@@ -443,6 +464,9 @@ export default function App() {
                       <input value={prospect[k] || ""} onChange={e => setProspect(p => ({ ...p, [k]: e.target.value }))} style={S.input} /></div>
                   ))}
                 </div>
+                <button onClick={lushaLookup} disabled={lushaLoading} style={{ ...S.btnSecondary, width: "100%", marginBottom: 8, color: lushaLoading ? "#64748B" : "#8B5CF6", borderColor: "#8B5CF630" }}>
+                  {lushaLoading ? "Searching Lusha..." : "\ud83d\udd0d Lusha Lookup (Email + Phone)"}
+                </button>
                 <button onClick={handleResearch} disabled={loading} style={{ ...S.btnPrimary, opacity: loading ? 0.6 : 1 }}>
                   {loading ? "🔍 Researching..." : "Research Company →"}
                 </button>
