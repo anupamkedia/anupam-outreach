@@ -48,7 +48,7 @@ const S = {
 
 // ── API HELPERS ──
 function getPin() { return typeof window !== "undefined" ? localStorage.getItem("ap-pin") || "" : ""; }
-function getUserId() { return typeof window !== "undefined" ? localStorage.getItem("ap-userId") || "" : ""; }
+function getUserId() { try { const u = JSON.parse(localStorage.getItem("ap-user") || "{}"); return u.id || ""; } catch { return ""; } }
 
 async function api(endpoint, body) {
   const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: getPin(), userId: getUserId(), ...body }) });

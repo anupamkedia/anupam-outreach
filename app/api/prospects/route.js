@@ -85,11 +85,11 @@ export async function POST(request) {
         industry: body.industry || "", email: body.email || "", phone: body.phone || "",
         location: body.location || "", summary: body.summary || "", headline: body.headline || "",
         research: body.research || "", status: body.status || "new",
-        source: body.source || "manual", created_by: body.userId,
+        source: body.source || "manual", created_by: body.userId || null || null,
       }).select().single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       // Log activity
-      await db.from("activity_log").insert({ prospect_id: data.id, action: "Created prospect", performed_by: body.userId });
+      await db.from("activity_log").insert({ prospect_id: data.id, action: "Created prospect", performed_by: body.userId || null });
       return NextResponse.json(data);
     }
 
@@ -98,7 +98,7 @@ export async function POST(request) {
       const updates = { ...body.updates, updated_at: new Date().toISOString() };
       const { data, error } = await db.from("prospects").update(updates).eq("id", body.id).select().single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      await db.from("activity_log").insert({ prospect_id: body.id, action: body.logAction || "Updated prospect", details: body.logDetails || "", performed_by: body.userId });
+      await db.from("activity_log").insert({ prospect_id: body.id, action: body.logAction || "Updated prospect", details: body.logDetails || "", performed_by: body.userId || null });
       return NextResponse.json(data);
     }
 
@@ -106,25 +106,25 @@ export async function POST(request) {
     if (action === "save_email") {
       const { data, error } = await db.from("emails").insert({
         prospect_id: body.prospectId, subject: body.subject, body: body.body,
-        email_type: body.emailType || "initial", sent_by: body.userId,
+        email_type: body.emailType || "initial", sent_by: body.userId || null,
       }).select().single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       await db.from("prospects").update({ status: body.emailType === "follow_up" ? "followed_up" : "emailed" }).eq("id", body.prospectId);
-      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: `Sent ${body.emailType || "initial"} email`, details: body.subject, performed_by: body.userId });
+      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: `Sent ${body.emailType || "initial"} email`, details: body.subject, performed_by: body.userId || null });
       return NextResponse.json(data);
     }
 
     // SAVE WHATSAPP
     if (action === "save_whatsapp") {
-      await db.from("whatsapp_messages").insert({ prospect_id: body.prospectId, message: body.message, sent_by: body.userId });
+      await db.from("whatsapp_messages").insert({ prospect_id: body.prospectId, message: body.message, sent_by: body.userId || null });
       await db.from("prospects").update({ status: "whatsapp_sent" }).eq("id", body.prospectId);
-      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: "Sent WhatsApp", performed_by: body.userId });
+      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: "Sent WhatsApp", performed_by: body.userId || null });
       return NextResponse.json({ success: true });
     }
 
     // ADD STYLE SAMPLE
     if (action === "add_style") {
-      await db.from("style_samples").insert({ content: body.content, added_by: body.userId });
+      await db.from("style_samples").insert({ content: body.content, added_by: body.userId || null });
       return NextResponse.json({ success: true });
     }
 
@@ -136,8 +136,8 @@ export async function POST(request) {
 
     // ADD FOLLOW-UP
     if (action === "add_followup") {
-      await db.from("follow_ups").insert({ prospect_id: body.prospectId, scheduled_date: body.date, note: body.note || "", created_by: body.userId });
-      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: "Scheduled follow-up", details: `${body.date}: ${body.note || ""}`, performed_by: body.userId });
+      await db.from("follow_ups").insert({ prospect_id: body.prospectId, scheduled_date: body.date, note: body.note || "", created_by: body.userId || null || null });
+      await db.from("activity_log").insert({ prospect_id: body.prospectId, action: "Scheduled follow-up", details: `${body.date}: ${body.note || ""}`, performed_by: body.userId || null });
       return NextResponse.json({ success: true });
     }
 
