@@ -224,7 +224,7 @@ export default function PipelinePage() {
 
       {adding && (
         <IntakeDrawer
-          me={me} team={team} seesAll={!!seesAll}
+          me={me} team={team}
           onClose={() => setAdding(false)}
           onSaved={() => { setAdding(false); load(); }}
         />
@@ -245,10 +245,11 @@ export default function PipelinePage() {
    Intake — manual, email paste, WhatsApp paste
    ══════════════════════════════════════════════════════════ */
 
-function IntakeDrawer({ me, team, seesAll, onClose, onSaved }: {
-  me: Profile | null; team: Profile[]; seesAll: boolean;
+function IntakeDrawer({ me, team, onClose, onSaved }: {
+  me: Profile | null; team: Profile[];
   onClose: () => void; onSaved: () => void;
 }) {
+  const canAssign = me?.role === 'admin' || me?.role === 'coordinator';
   const [tab, setTab] = useState<'manual' | 'email' | 'whatsapp'>('manual');
   const [raw, setRaw] = useState('');
   const [form, setForm] = useState<Partial<Lead>>({ ...EMPTY, owner_id: me?.id });
@@ -360,7 +361,7 @@ function IntakeDrawer({ me, team, seesAll, onClose, onSaved }: {
         )}
 
         <Fields form={form} set={set} guessed={guessed} toggleProduct={toggleProduct}
-                team={team} seesAll={seesAll} onBlurDupe={() => checkDupes()} />
+                team={team} seesAll={canAssign} onBlurDupe={() => checkDupes()} />
 
         {err && <div className="pl-note stop">{err}</div>}
 
@@ -391,6 +392,7 @@ function LeadDrawer({ lead, me, team, seesAll, onClose, onSaved }: {
   const [err, setErr] = useState('');
 
   const isAdmin = me?.role === 'admin';
+  const canAssign = me?.role === 'admin' || me?.role === 'coordinator';
   const locked = lead.is_locked && !isAdmin;
   const set = (k: keyof Lead, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -470,7 +472,7 @@ function LeadDrawer({ lead, me, team, seesAll, onClose, onSaved }: {
                   const cur = form.products ?? [];
                   set('products', cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]);
                 }}
-                team={team} seesAll={seesAll && isAdmin} onBlurDupe={() => {}} />
+                team={team} seesAll={canAssign} onBlurDupe={() => {}} />
 
         {err && <div className="pl-note stop">{err}</div>}
 
@@ -609,7 +611,11 @@ function Fields({ form, set, guessed, toggleProduct, team, seesAll, disabled, on
           <label htmlFor="ow">Assigned to</label>
           <select id="ow" value={form.owner_id ?? ''} disabled={disabled}
                   onChange={(e) => set('owner_id', e.target.value)}>
-            {team.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+            {team.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name}{p.role === 'rep' ? '' : ` (${p.role})`}
+              </option>
+            ))}
           </select>
         </div>
       )}
